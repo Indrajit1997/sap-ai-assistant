@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sap-blue: #0070f2;
+  --sap-dark: #1a1a2e;
+  --sap-surface: #16213e;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--sap-dark);
+  color: #e0e0e0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+/* Markdown in chat */
+.prose pre {
+  background: #1e1e2e;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.prose code {
+  background: #2a2a3e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.prose a {
+  color: var(--sap-blue);
+}
+
+/* Typing animation */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.typing-cursor::after {
+  content: '▊';
+  animation: blink 1s infinite;
+  color: var(--sap-blue);
+}
