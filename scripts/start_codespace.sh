@@ -6,18 +6,26 @@ echo "========================================="
 echo "  SAP AI Assistant - Codespace Launcher"
 echo "========================================="
 
-# 1. Create .env if it doesn't exist
+# 1. Bootstrap .env from .env.example if missing
 if [ ! -f .env ]; then
+  if [ -f .env.example ]; then
+    cp .env.example .env
+    echo ""
+    echo "⚠️  No .env file found. Created .env from .env.example."
+    echo "   Edit .env and configure your provider credentials"
+    echo "   (for example: LLM_PROVIDER=gemini plus GEMINI_API_KEY,"
+    echo "   or LLM_PROVIDER=anthropic plus ANTHROPIC_API_KEY)."
+    echo "   Exiting so you can review the configuration."
+  else
+    echo ""
+    echo "❌ No .env file found and .env.example is missing."
+    echo "   Create a .env file with your provider credentials before starting."
+  fi
   echo ""
-  echo "⚠️  No .env file found. Create one from .env.example:"
-  echo "   cp .env.example .env"
-  echo "   Then edit .env and configure your provider credentials"
-  echo "   (for example: LLM_PROVIDER=gemini plus GEMINI_API_KEY,"
-  echo "   or LLM_PROVIDER=anthropic plus ANTHROPIC_API_KEY)."
-  echo ""
+  exit 1
 fi
 
-# 2. Ingest sample docs if vector store is empty
+# 2. Ingest sample docs if vector store directory doesn't exist yet
 if [ ! -d "data/chroma" ]; then
   echo "📄 Ingesting sample SAP documentation..."
   python scripts/ingest.py --path docs/sample/ --recursive --module S4HANA
