@@ -6,50 +6,57 @@ A domain-specific RAG-powered AI chatbot for SAP documentation, KB articles, and
 
 ### Prerequisites
 - Python 3.11+
-- Node.js 18+ (for React frontend)
-- AWS credentials (for Bedrock) OR Anthropic API key
+- API key for one of: Google Gemini (recommended), Anthropic, Groq, or AWS Bedrock
 
 ### Setup
 
 ```powershell
 # Clone and setup
-cd C:\Users\isen\source\repos\sap-ai-assistant
+git clone git@github.com:Indrajit1997/sap-ai-assistant.git
+cd sap-ai-assistant
 
 # Create virtual environment
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# Install backend dependencies
+# Install dependencies
 pip install -r backend/requirements.txt
+pip install streamlit
 
 # Copy environment config
-cp .env.example .env
-# Edit .env with your API keys
+Copy-Item .env.example .env
+# Edit .env — set LLM_PROVIDER and your API key
 
-# Start backend
+# Start backend (terminal 1)
 uvicorn backend.main:app --reload --port 8000
 
-# Start Streamlit frontend (new terminal)
+# Start Streamlit UI (terminal 2)
+.\.venv\Scripts\Activate.ps1
 streamlit run frontend/streamlit_app.py
-
-# OR start React frontend (new terminal)
-cd frontend/react-app
-npm install
-npm run dev
 ```
+
+Open http://localhost:8501 in your browser.
 
 ### Ingest Documents
 
 ```powershell
+# Ingest sample SAP docs
+python scripts/ingest.py --path docs/sample/ --recursive --module S4HANA
+
 # Ingest a single file
-python scripts/ingest.py --path docs/sample/your-doc.pdf
+python scripts/ingest.py --path docs/your-doc.pdf
 
-# Ingest a directory
-python scripts/ingest.py --path docs/sample/ --recursive
-
-# Ingest with specific SAP module tag
-python scripts/ingest.py --path docs/ --module S4HANA --recursive
+# Ingest from URL
+python scripts/ingest.py --url https://help.sap.com/docs/...
 ```
+
+### Deploy on a Remote Machine
+
+```bash
+bash scripts/start_codespace.sh
+```
+
+This script auto-bootstraps `.env`, ingests sample docs, starts the backend, and launches the Streamlit UI.
 
 ## Architecture
 
@@ -59,19 +66,22 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full system design.
 
 ```
 sap-ai-assistant/
+├── .devcontainer/           # GitHub Codespaces / devcontainer config
 ├── backend/
 │   ├── main.py              # FastAPI app entry point
 │   ├── config.py            # Configuration (env-based)
 │   ├── ingestion/           # Document loading, chunking, embedding
 │   ├── vectorstore/         # ChromaDB + OpenSearch adapters
 │   ├── rag/                 # Retrieval, reranking, prompt building
-│   ├── llm/                 # LLM provider adapters
+│   ├── llm/                 # LLM provider adapters (Gemini, Anthropic, Groq, Bedrock)
 │   └── api/                 # API routes and models
 ├── frontend/
-│   ├── streamlit_app.py     # Quick demo UI
-│   └── react-app/           # Production React UI
+│   ├── streamlit_app.py     # Streamlit UI (chat, upload, URL ingest, reset)
+│   └── react-app/           # React UI (in progress)
 ├── docs/sample/             # Sample SAP docs for testing
-└── scripts/                 # CLI tools
+└── scripts/
+    ├── ingest.py            # CLI ingestion tool (files + URLs)
+    └── start_codespace.sh   # One-command server launcher
 ```
 
 ## API Endpoints
@@ -81,14 +91,26 @@ sap-ai-assistant/
 | POST | `/api/v1/chat` | Send a message, get RAG-grounded response |
 | GET | `/api/v1/chat/stream` | SSE streaming chat |
 | POST | `/api/v1/documents/upload` | Upload documents for ingestion |
+| POST | `/api/v1/documents/url` | Ingest from public URLs |
 | GET | `/api/v1/documents` | List ingested documents |
 | DELETE | `/api/v1/documents/{id}` | Remove a document |
+| DELETE | `/api/v1/documents/reset` | Clear entire knowledge base |
 | GET | `/api/v1/health` | Health check |
+
+## LLM Providers
+
+| Provider | Config | Notes |
+|---|---|---|
+| **Google Gemini** | `LLM_PROVIDER=gemini` + `GEMINI_API_KEY` | Recommended, free tier available |
+| **Groq** | `LLM_PROVIDER=groq` + `GROQ_API_KEY` | Fast inference, free tier |
+| **Anthropic** | `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` | Claude models |
+| **AWS Bedrock** | `LLM_PROVIDER=bedrock` + AWS credentials | Enterprise |
 
 ## Tech Stack
 
-- **Backend**: Python, FastAPI, LangChain (minimal)
+- **Backend**: Python 3.11, FastAPI, Pydantic
 - **Vector Store**: ChromaDB (dev) / OpenSearch (prod)
-- **LLM**: AWS Bedrock (Claude) / Anthropic API
-- **Embeddings**: sentence-transformers / Amazon Titan
-- **Frontend**: Streamlit (demo) + React+Vite (production)
+- **LLM**: Google Gemini / Anthropic / Groq / AWS Bedrock
+- **Embeddings**: sentence-transformers (all-MiniLM-L6-v2, local, free)
+- **Frontend**: Streamlit (with retry + copy features)
+- **Document Processing**: PDF, DOCX, HTML, Markdown, TXT, URLs
